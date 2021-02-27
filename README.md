@@ -63,7 +63,7 @@ if CLIENT then return end
 if not SERVER then return end
 end
 ```
-### Стандартные значения
+#### Стандартные значения
 ```
 function print_something(text="Something")
 print(text)
