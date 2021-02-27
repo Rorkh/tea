@@ -63,6 +63,17 @@ if CLIENT then return end
 if not SERVER then return end
 end
 ```
+### Стандартные значения
+```
+function print_something(text="Something")
+print(text)
+end
+->
+function print_something(text)
+text = text or "Something"
+print(text)
+end
+```
 ### Баги
 Багов много, в issue смотрите (если там нет, то значит я поленился писать о них, но в уме держу)
 ## En
