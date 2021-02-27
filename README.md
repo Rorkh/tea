@@ -7,7 +7,7 @@
 ### Плюшки
 #### Каст типов
 ```
-print((number), "123")
+print((number) "123")
 ->
 print(tonumber("123"))
 ```
@@ -50,6 +50,17 @@ end
 ->
 function func()
 if CLIENT then return end
+end
+```
+```
+![SERVER]
++[CLIENT]
+function func()
+end
+->
+function func()
+if CLIENT then return end
+if not SERVER then return end
 end
 ```
 ### Баги
