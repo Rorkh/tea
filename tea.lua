@@ -43,7 +43,7 @@ local inc_ops = {
 
 local function find_function(lines, start)
     for i = 1, 10 do  -- Limit for the greater opimization. May be shitty :(
-        if lines[start + i]:match("function [1-9a-zA-Z, _:]+%([1-9a-zA-Z, _]*%)") then
+        if lines[start + i]:match("function [1-9a-zA-Z, _:]+%([1-9a-zA-Z, _\"=']*%)") then
             return start + i
         end
     end
@@ -54,7 +54,37 @@ end
 local line_ops = {
     {
         match = function(k, line, lines)
-            local deco = line:match("[!-]%[([a-zA-Z _:()\"']+)%]")
+            local name, args = line:match("function ([1-9a-zA-Z, _:]+)%(([1-9a-zA-Z, _\"=']*)%)")
+            local args_tbl = {}
+
+            if args then
+                for arg, default in args:gmatch("([1-9a-zA-Z_]+)=([1-9a-zA-Z _\"']+)") do
+                    table.insert(args_tbl, {arg, default})
+                end
+
+                return true, name, args_tbl, args
+            end
+
+            return false
+        end,
+
+        replace = function(k, line, lines, name, args_tbl, args)
+            local args_str = ""
+
+            for n, arg in ipairs(args_tbl) do
+                -- Bottleneck?
+                args_str = args_str .. arg[1] .. (n == #args_tbl and "" or ",")
+
+                table.insert(lines, k+1, arg[1] .. " = " .. arg[1] .. " or " .. arg[2])
+            end
+
+            lines[k] = line:gsub("function " .. name .. "%(" .. args .. "%)", "function " .. name .. "(" .. args_str .. ")")
+        end
+    },
+
+    {
+        match = function(k, line, lines)
+            local deco = line:match("[!-]%[([a-zA-Z _:()\"=']+)%]")
 
             if deco then
                 local func = find_function(lines, k)
