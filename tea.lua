@@ -41,38 +41,50 @@ local inc_ops = {
     }
 }
 
+local function find_function(lines, start)
+    for i = 1, 10 do  -- Limit for the greater opimization. May be shitty :(
+        if lines[start + i]:match("function [1-9a-zA-Z, _:]+%([1-9a-zA-Z, _]*%)") then
+            return start + i
+        end
+    end
+
+    return false
+end
+
 local line_ops = {
     {
         match = function(k, line, lines)
             local deco = line:match("[!-]%[([a-zA-Z _:()]+)%]")
+
             if deco then
-                local match = lines[k+1]:match("function [1-9a-zA-Z, _:]+%([1-9a-zA-Z, _]*%)")
-                if match then return true, deco end
+                local func = find_function(lines, k)
+                if func then return true, deco, func end
             end
 
             return false
         end,
 
-        replace = function(k, line, lines, deco)
-            lines[k] = ""
-            table.insert(lines, k+2, "if not " .. deco .. " then return end")
+        replace = function(k, line, lines, deco, func_line)
+            lines[k] = "[ignore]"
+            table.insert(lines, func_line + 1, "if not " .. deco .. " then return end")
         end
     },
 
     {
         match = function(k, line, lines)
             local deco = line:match("+%[([a-zA-Z _:()]+)%]")
+
             if deco then
-                local match = lines[k+1]:match("function [1-9a-zA-Z, _:]+%([1-9a-zA-Z, _]*%)")
-                if match then return true, deco end
+                local func = find_function(lines, k)
+                if func then return true, deco, func end
             end
 
             return false
         end,
 
-        replace = function(k, line, lines, deco)
-            lines[k] = ""
-            table.insert(lines, k+2, "if " .. deco .. " then return end")
+        replace = function(k, line, lines, deco, func_line)
+            lines[k] = "[ignore]"
+            table.insert(lines, func_line + 1, "if " .. deco .. " then return end")
         end
     },
 
@@ -102,7 +114,7 @@ local line_ops = {
         end,
 
         replace = function(k, line, lines, var, tbl)
-            lines[k] = line:gsub("for " .. var .. " in " .. tbl .. " do", "for k, " .. var .. " in pairs(" .. tbl .. ") do") 
+            lines[k] = line:gsub("for " .. var .. " in " .. tbl .. " do", "for k, " .. var .. " in ipairs(" .. tbl .. ") do") 
         end
     }
 }
@@ -193,7 +205,12 @@ end
 
 local function concat_lines(lines)
     local result = ""
-    for k, v in ipairs(lines) do result = result .. v .. "\n" end
+
+    for k, v in ipairs(lines) do
+        if v ~= "[ignore]" then
+            result = result .. v .. "\n"
+        end
+    end
 
     return result
 end
@@ -250,7 +267,7 @@ local function replace_files(path)
         local file = path.."/"..v
         local capture = string.match(file, ".+%.(.+)")
 
-        if capture == "lua" then
+        if capture == "tlua" then
             local f = io.open(file)
             local content = f:read("*a")
             f:close()
