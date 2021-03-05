@@ -41,9 +41,11 @@ local inc_ops = {
     }
 }
 
+local defines = {}
+
 local function find_function(lines, start)
     for i = 1, 10 do  -- Limit for the greater opimization. May be shitty :(
-        if lines[start + i]:match("function [1-9a-zA-Z, _:]+%([1-9a-zA-Z, _\"=']*%)") then
+        if lines[start + i]:match("function [0-9a-zA-Z, _:]+%([0-9a-zA-Z, _\"=']*%)") then
             return start + i
         end
     end
@@ -54,11 +56,11 @@ end
 local line_ops = {
     {
         match = function(k, line, lines)
-            local name, args = line:match("function ([1-9a-zA-Z, _:]+)%(([1-9a-zA-Z, _\"=']*)%)")
+            local name, args = line:match("function ([0-9a-zA-Z, _:.]+)%(([0-9a-zA-Z, _\"=']*)%)")
             local args_tbl = {}
 
             if args then
-                for arg, default in args:gmatch("([1-9a-zA-Z_]+)=([1-9a-zA-Z _\"']+)") do
+                for arg, default in args:gmatch("([0-9a-zA-Z_]+)=([0-9a-zA-Z _\"']+)") do
                     table.insert(args_tbl, {arg, default})
                 end
 
@@ -82,9 +84,40 @@ local line_ops = {
         end
     },
 
+	{
+		match = function(k, line, lines)
+			local def, replace = line:match("^#define (.+) (.+)$")
+
+			if def and replace then
+				return true, def, replace
+			end
+		end,
+
+		replace = function(k, line, lines, def, replace)
+			lines[k] = "[ignore]"
+			defines[def] = replace
+		end
+	},
+
+	{
+		match = function(k, line, lines)
+			local matcher, ret = line:match("^%[([a-zA-Z _:()\"='.]+)%]%[([a-zA-Z _:()\"=']+)%]$")
+
+			if matcher and ret then
+				local func = find_function(lines, k)
+				if func then return true, matcher, ret, func end
+			end
+		end,
+
+		replace = function(k, line, lines, matcher, ret, func_line)
+			lines[k] = "[ignore]"
+			table.insert(lines, func_line + 1, "if " .. matcher .. " then " .. ret .. " end")
+		end
+	},
+
     {
         match = function(k, line, lines)
-            local deco = line:match("^[!-]%[([a-zA-Z _:()\"=']+)%]$")
+            local deco = line:match("^[!-]%[([a-zA-Z _:()\"='.]+)%]$")
 
             if deco then
                 local func = find_function(lines, k)
@@ -102,7 +135,7 @@ local line_ops = {
 
     {
         match = function(k, line, lines)
-            local deco = line:match("^+%[([a-zA-Z _:()\"']+)%]$")
+            local deco = line:match("^+%[([a-zA-Z _:()\"'.]+)%]$")
 
             if deco then
                 local func = find_function(lines, k)
@@ -120,7 +153,7 @@ local line_ops = {
 
     {
         match = function(k, line, lines)
-            local _type, junk, var = line:match("%(([a-zA-Z]+)%)([ ]*)([1-9a-zA-Z_]+)")
+            local _type, junk, var = line:match("%(([a-zA-Z]+)%)([ ]*)([0-9a-zA-Z_.]+)")
 
             if _type and var then
                 return true, _type, junk, var
@@ -136,7 +169,7 @@ local line_ops = {
 
     {
         match = function(k, line, lines)
-             local var, tbl = line:match("for ([a-zA-Z_1-9]+) in ([a-zA-Z_1-9]+) do")
+             local var, tbl = line:match("for ([a-zA-Z_0-9]+) in ([a-zA-Z_0-9._:]+) do")
 
             if var and tbl then
                 return true, var, tbl
@@ -144,7 +177,7 @@ local line_ops = {
         end,
 
         replace = function(k, line, lines, var, tbl)
-            lines[k] = line:gsub("for " .. var .. " in " .. tbl .. " do", "for k, " .. var .. " in ipairs(" .. tbl .. ") do") 
+            lines[k] = line:gsub("for " .. var .. " in " .. tbl .. " do", "for k, " .. var .. " in ipairs(" .. tbl .. ") do")
         end
     }
 }
@@ -199,20 +232,20 @@ end
 local function parse_vars(text)
     local cursor = 0
     local _end = string.len(text)
-    
+
     local state = 0
     local var = ""
-            
-    while cursor ~= _end do        
+
+    while cursor ~= _end do
         if string.sub(text, cursor, cursor + 2):match("%$%(") then
             state = 1
             cursor = cursor + 2
         elseif state == 1 then
             cursor = cursor + 1
-            
+
             if string.sub(text, cursor, cursor) == ")" then
                 text = text:gsub([[%$%(]] .. var .. [[%)]], [["..]]..var..[[.."]])
-                
+
                 var = ""
                 state = 0
             else
@@ -222,7 +255,7 @@ local function parse_vars(text)
             cursor = cursor + 1
         end
     end
-    
+
     return text
 end
 
@@ -248,7 +281,7 @@ end
 local function parse_ops(lines)
     for k, line in ipairs(lines) do
         for _, v in ipairs(var_ops) do
-            local var, exp = line:match("([a-zA-Z_1-9]+) " .. v[1] .. " (.+)")
+            local var, exp = line:match("([a-zA-Z_0-9]+) " .. v[1] .. " (.+)")
 
             if var and exp then
                 lines[k] = line:gsub(var .. " " .. v[1] .. " " .. exp, var .. " = " .. var .. " " .. v[2] .. " " .. exp)
@@ -260,7 +293,7 @@ end
 local function parse_increments(lines)
     for k, line in ipairs(lines) do
         for _, v in ipairs(inc_ops) do
-            local var = line:match("([a-zA-Z_1-9]+)" .. v[1])
+            local var = line:match("([a-zA-Z_0-9]+)" .. v[1])
 
             if var then
                 lines[k] = line:gsub(var .. v[1], var .. " = " .. var .. " " .. v[2] .. " 1")
@@ -289,6 +322,10 @@ local function parse(text)
 
     text = concat_lines(lines)
 
+	for define, value in pairs(defines) do
+		text = text:gsub(define, value)
+	end
+
     return text
 end
 
@@ -311,7 +348,7 @@ local function replace_files(path)
     end
 end
 
-local start = os.clock() 
+local start = os.clock()
 
 if arg[1]:match(".+%.lua") then
     local f = io.open(arg[1])
