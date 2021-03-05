@@ -84,7 +84,7 @@ local line_ops = {
 
     {
         match = function(k, line, lines)
-            local deco = line:match("[!-]%[([a-zA-Z _:()\"=']+)%]")
+            local deco = line:match("^[!-]%[([a-zA-Z _:()\"=']+)%]$")
 
             if deco then
                 local func = find_function(lines, k)
@@ -102,7 +102,7 @@ local line_ops = {
 
     {
         match = function(k, line, lines)
-            local deco = line:match("+%[([a-zA-Z _:()\"']+)%]")
+            local deco = line:match("^+%[([a-zA-Z _:()\"']+)%]$")
 
             if deco then
                 local func = find_function(lines, k)
