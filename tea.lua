@@ -101,7 +101,26 @@ local line_ops = {
 
 	{
 		match = function(k, line, lines)
-			local matcher, ret = line:match("^%[([a-zA-Z _:()\"='.]+)%]%[([a-zA-Z _:()\"=']+)%]$")
+			local define, alias = line:match("^#alias (.+) (.+)$")
+
+			if alias and define then
+				return true, define, alias
+			end
+		end,
+
+		replace = function(k, line, lines, define, alias)
+			lines[k] = "[ignore]"
+
+			local def = defines[define]
+			if def then
+				defines[alias] = def
+			end
+		end
+	},
+
+	{
+		match = function(k, line, lines)
+			local matcher, ret = line:match("^%[([a-zA-Z _:()\"='.]+)%]%[([a-zA-Z _:()\"=']*)%]$")
 
 			if matcher and ret then
 				local func = find_function(lines, k)
@@ -111,7 +130,7 @@ local line_ops = {
 
 		replace = function(k, line, lines, matcher, ret, func_line)
 			lines[k] = "[ignore]"
-			table.insert(lines, func_line + 1, "if " .. matcher .. " then " .. ret .. " end")
+			table.insert(lines, func_line + 1, "if " .. matcher .. " then return" .. ret .. " end")
 		end
 	},
 
