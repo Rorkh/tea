@@ -63,6 +63,27 @@ if CLIENT then return end
 if not SERVER then return end
 end
 ```
+#### Декораторы совпадения
+```
+[CLIENT][false]
+function something()
+end
+->
+function something()
+  if CLIENT then return false end
+end
+```
+#### Дефайны и алиасы
+```
+#define да true
+#alias да точно
+
+print(да)
+print(точно)
+->
+print(true)
+print(true)
+```
 #### Стандартные значения
 ```
 function print_something(text="Something")
