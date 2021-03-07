@@ -65,7 +65,9 @@ local line_ops = {
                     table.insert(args_tbl, {arg, default})
                 end
 
-                return true, name, args_tbl, args
+                if next(args_tbl) ~= nil then
+                	return true, name, args_tbl, args
+                end
             end
 
             return false
