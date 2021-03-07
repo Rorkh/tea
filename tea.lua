@@ -42,6 +42,7 @@ local inc_ops = {
 }
 
 local defines = {}
+local pragmas = {}
 
 local function find_function(lines, start)
     for i = 1, 10 do  -- Limit for the greater opimization. May be shitty :(
@@ -83,6 +84,21 @@ local line_ops = {
             lines[k] = line:gsub("function " .. name .. "%(" .. args .. "%)", "function " .. name .. "(" .. args_str .. ")")
         end
     },
+
+    {
+		match = function(k, line, lines)
+			local key, value = line:match("^#pragma (.+)[ ]*(.*)$")
+
+			if key and value then
+				return true, key, value
+			end
+		end,
+
+		replace = function(k, line, lines, key, values)
+			lines[k] = "[ignore]"
+			pragmas[key] = value or true
+		end
+	},
 
 	{
 		match = function(k, line, lines)
@@ -345,6 +361,16 @@ local function parse(text)
 		text = text:gsub(define, value)
 	end
 
+	if pragmas["minimize"] then
+		local Parser = require'thirdparty.ParseLua'
+		local Format_Mini = require'thirdparty.FormatMini'
+		local ParseLua = Parser.ParseLua
+
+
+		local st, ast = ParseLua(text)
+		text = Format_Mini(ast)
+	end
+
     return text
 end
 
@@ -358,7 +384,7 @@ local function replace_files(path)
             local content = f:read("*a")
             f:close()
 
-            local f = io.open(file, "w")
+            local f = io.open(file:gmatch(".tlua", ".lua"), "w")
                 f:write(parse(content))
                 f:close()
         elseif capture == nil then
@@ -369,12 +395,16 @@ end
 
 local start = os.clock()
 
-if arg[1]:match(".+%.lua") then
+if arg[1]:match(".+%.tlua") then
     local f = io.open(arg[1])
+    if not f then print("Could not open the file") return end
     local content = f:read("*a")
     f:close()
 
-    print(parse(content))
+    local f = io.open(arg[1]:gsub(".tlua", ".lua"), "w")
+    	f:write(parse(content))
+        f:close()
+
     print(string.format("Completed in: %.2f\n", os.clock() - start))
     return
 end
