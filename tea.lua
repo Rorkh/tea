@@ -146,7 +146,7 @@ local line_ops = {
 
 		replace = function(k, line, lines, matcher, ret, func_line)
 			lines[k] = "[ignore]"
-			table.insert(lines, func_line + 1, "if " .. matcher .. " then return" .. ret .. " end")
+			table.insert(lines, func_line + 1, "if " .. matcher .. " then return " .. ret .. " end")
 		end
 	},
 
