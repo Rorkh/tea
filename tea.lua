@@ -57,6 +57,25 @@ end
 local line_ops = {
     {
         match = function(k, line, lines)
+            local vars = {}
+
+            for var in line:gmatch("%${(.+)}") do
+                table.insert(vars, var)
+            end
+
+            if next(vars) ~= nil then return true, vars end
+            return false
+        end,
+
+        replace = function(k, line, lines, vars)
+            for _, var in ipairs(vars) do
+                lines[k] = line:gsub("%${"..var.."}", '"..'..var..'.."')
+            end
+        end
+    },
+
+    {
+        match = function(k, line, lines)
             local name, args = line:match("function ([0-9a-zA-Z, _:.]+)%(([0-9a-zA-Z, _\"=']*)%)")
             local args_tbl = {}
 
@@ -66,7 +85,7 @@ local line_ops = {
                 end
 
                 if next(args_tbl) ~= nil then
-                	return true, name, args_tbl, args
+                    return true, name, args_tbl, args
                 end
             end
 
@@ -88,69 +107,69 @@ local line_ops = {
     },
 
     {
-		match = function(k, line, lines)
-			local key, value = line:match("^#pragma (.+)[ ]*(.*)$")
+        match = function(k, line, lines)
+            local key, value = line:match("^#pragma (.+)[ ]*(.*)$")
 
-			if key and value then
-				return true, key, value
-			end
-		end,
+            if key and value then
+                return true, key, value
+            end
+        end,
 
-		replace = function(k, line, lines, key, values)
-			lines[k] = "[ignore]"
-			pragmas[key] = value or true
-		end
-	},
+        replace = function(k, line, lines, key, values)
+            lines[k] = "[ignore]"
+            pragmas[key] = value or true
+        end
+    },
 
-	{
-		match = function(k, line, lines)
-			local def, replace = line:match("^#define (.+) (.+)$")
+    {
+        match = function(k, line, lines)
+            local def, replace = line:match("^#define (.+) (.+)$")
 
-			if def and replace then
-				return true, def, replace
-			end
-		end,
+            if def and replace then
+                return true, def, replace
+            end
+        end,
 
-		replace = function(k, line, lines, def, replace)
-			lines[k] = "[ignore]"
-			defines[def] = replace
-		end
-	},
+        replace = function(k, line, lines, def, replace)
+            lines[k] = "[ignore]"
+            defines[def] = replace
+        end
+    },
 
-	{
-		match = function(k, line, lines)
-			local define, alias = line:match("^#alias (.+) (.+)$")
+    {
+        match = function(k, line, lines)
+            local define, alias = line:match("^#alias (.+) (.+)$")
 
-			if alias and define then
-				return true, define, alias
-			end
-		end,
+            if alias and define then
+                return true, define, alias
+            end
+        end,
 
-		replace = function(k, line, lines, define, alias)
-			lines[k] = "[ignore]"
+        replace = function(k, line, lines, define, alias)
+            lines[k] = "[ignore]"
 
-			local def = defines[define]
-			if def then
-				defines[alias] = def
-			end
-		end
-	},
+            local def = defines[define]
+            if def then
+                defines[alias] = def
+            end
+        end
+    },
 
-	{
-		match = function(k, line, lines)
-			local matcher, ret = line:match("^%[([a-zA-Z _:()\"='.]+)%]%[([a-zA-Z _:()\"=']*)%]$")
+    {
+        match = function(k, line, lines)
+            local matcher, ret = line:match("^%[([a-zA-Z _:()\"='.]+)%]%[([a-zA-Z _:()\"=']*)%]$")
 
-			if matcher and ret then
-				local func = find_function(lines, k)
-				if func then return true, matcher, ret, func end
-			end
-		end,
+            if matcher and ret then
+                local func = find_function(lines, k)
+                if func then return true, matcher, ret, func end
+            end
+        end,
 
-		replace = function(k, line, lines, matcher, ret, func_line)
-			lines[k] = "[ignore]"
-			table.insert(lines, func_line + 1, "if " .. matcher .. " then return " .. ret .. " end")
-		end
-	},
+        replace = function(k, line, lines, matcher, ret, func_line)
+            lines[k] = "[ignore]"
+            table.insert(lines, func_line + 1, "if " .. matcher .. " then return " .. ret .. " end")
+        end
+    },
 
     {
         match = function(k, line, lines)
@@ -190,7 +209,7 @@ local line_ops = {
 
     {
         match = function(k, line, lines)
-            local _type, junk, var = line:match("%(([a-zA-Z]+)%)([ ]*)([0-9a-zA-Z_.]+)")
+            local _type, junk, var = line:match("%(([a-zA-Z]+)%)([ ]*)([0-9a-zA-Z_.'\"]+)")
 
             if _type and var then
                 return true, _type, junk, var
@@ -266,36 +285,6 @@ local function copy_folder(origin, to)
     -- TODO: Linux
 end
 
-local function parse_vars(text)
-    local cursor = 0
-    local _end = string.len(text)
-
-    local state = 0
-    local var = ""
-
-    while cursor ~= _end do
-        if string.sub(text, cursor, cursor + 2):match("%$%(") then
-            state = 1
-            cursor = cursor + 2
-        elseif state == 1 then
-            cursor = cursor + 1
-
-            if string.sub(text, cursor, cursor) == ")" then
-                text = text:gsub([[%$%(]] .. var .. [[%)]], [["..]]..var..[[.."]])
-
-                var = ""
-                state = 0
-            else
-                var = var .. string.sub(text, cursor, cursor)
-            end
-        else
-            cursor = cursor + 1
-        end
-    end
-
-    return text
-end
-
 local function parse_lines(text)
     local lines = {}
 
@@ -340,8 +329,6 @@ local function parse_increments(lines)
 end
 
 local function parse(text)
-    text = parse_vars(text)
-
     local lines = parse_lines(text)
 
         parse_ops(lines)
@@ -359,19 +346,19 @@ local function parse(text)
 
     text = concat_lines(lines)
 
-	for define, value in pairs(defines) do
-		text = text:gsub(define, value)
-	end
+    for define, value in pairs(defines) do
+        text = text:gsub(define, value)
+    end
 
-	if pragmas["minimize"] then
-		local Parser = require'thirdparty.ParseLua'
-		local Format_Mini = require'thirdparty.FormatMini'
-		local ParseLua = Parser.ParseLua
+    if pragmas["minimize"] then
+        local Parser = require'thirdparty.ParseLua'
+        local Format_Mini = require'thirdparty.FormatMini'
+        local ParseLua = Parser.ParseLua
 
 
-		local st, ast = ParseLua(text)
-		text = Format_Mini(ast)
-	end
+        local st, ast = ParseLua(text)
+        text = Format_Mini(ast)
+    end
 
     return text
 end
@@ -404,7 +391,7 @@ if arg[1]:match(".+%.tlua") then
     f:close()
 
     local f = io.open(arg[1]:gsub(".tlua", ".lua"), "w")
-    	f:write(parse(content))
+        f:write(parse(content))
         f:close()
 
     print(string.format("Completed in: %.2f\n", os.clock() - start))
