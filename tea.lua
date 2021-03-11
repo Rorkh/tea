@@ -209,7 +209,7 @@ local line_ops = {
 
     {
         match = function(k, line, lines)
-            local _type, junk, var = line:match("[a-zA-Z0-9.\"'_(){}]%(([a-zA-Z]+)%)([ ]*)([0-9a-zA-Z_.'\"]+)")
+            local _type, junk, var = line:match("[a-zA-Z0-9.\"'_(){} ]%(([a-zA-Z]+)%)([ ]*)([0-9a-zA-Z_.'\"]+)")
 
             if _type and var then
                 return true, _type, junk, var
