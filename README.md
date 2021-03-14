@@ -5,6 +5,18 @@
 ### Цель
 Упростить написание скриптов на языке программирования Lua
 ### Плюшки
+#### Сокращенный for
+```lua
+local tbl = {}
+for elem in tbl do
+	print(elem)
+end
+->
+local tbl = {}
+for k, elem in ipairs(tbl) do
+	print(elem)
+end
+```
 #### Форматирование текста
 ```lua
 print("My name is ${var} Smith")
