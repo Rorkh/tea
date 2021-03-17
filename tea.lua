@@ -209,17 +209,24 @@ local line_ops = {
 
     {
         match = function(k, line, lines)
-            local _type, junk, var = line:match("[a-zA-Z0-9.\"'_(){} ]%(([a-zA-Z]+)%)([ ]*)([0-9a-zA-Z_.'\"]+)")
+            local casts = {}
 
-            if _type and var then
-                return true, _type, junk, var
+            for _type, junk, var in line:gmatch("[a-zA-Z0-9.\"'_(){} ]%(([a-zA-Z]+)%)([ ]*)([0-9a-zA-Z_.'\"]+)") do
+                table.insert(casts, {_type, junk, var})
+            end
+
+            if next(casts) ~= nil then
+                return true, casts
             end
 
             return false
         end,
 
-        replace = function(k, line, lines, _type, junk, var)
-            lines[k] = line:gsub("%(".._type.."%)"..junk..var, "to".._type.."("..var..")")
+        replace = function(k, line, lines, casts)
+            for k, v in ipairs(casts) do
+                local _type, junk, var = v[1], v[2], v[3]
+                lines[k] = line:gsub("%(".._type.."%)"..junk..var, "to".._type.."("..var..")")
+            end
         end
     },
 
