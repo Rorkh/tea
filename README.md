@@ -5,7 +5,7 @@
 ### Цель
 Упростить написание скриптов на языке программирования Lua
 ### Плюшки
-#### Условная компиляция
+#### Развертка цикла for
 ```lua
 #for i = 1, 3 do
 surface.CreateFont("font_$(i)", {size=$(i)})
@@ -15,7 +15,14 @@ surface.CreateFont("font_1", {size=1})
 surface.CreateFont("font_2", {size=2})
 surface.CreateFont("font_3", {size=3})
 ```
-
+#### Условная компиляция
+```lua
+#if true then
+true
+#end
+->
+true
+```
 #### Сокращенный for
 ```lua
 local tbl = {}
