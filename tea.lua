@@ -1,6 +1,7 @@
 local os_name = package.config:sub(1,1) == "\\" and "Windows" or "Unix"
 
 local execute = os.execute
+local preprocess = require "thirdparty.preprocess"
 
 local var_ops = {
     {
@@ -40,6 +41,8 @@ local inc_ops = {
         "+"
     }
 }
+
+local globals = {}
 
 local defines = {}
 local pragmas = {}
@@ -367,7 +370,7 @@ local function parse(text)
         text = Format_Mini(ast)
     end
 
-    return text
+    return preprocess({input = text, lookup = globals})
 end
 
 local function replace_files(path)
