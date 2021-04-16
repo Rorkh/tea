@@ -50,7 +50,7 @@ elseif action == "build" then
 	status, builder = pcall(require, "builders." .. cup.builder)
 	if not status then error("Builder was not founded.") return end
 
-	builder.build()
+	builder.build(package.path, io.popen"cd":read'*l')
 else
 	print("[ERROR] Unknown action.")
 	return
