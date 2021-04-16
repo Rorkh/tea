@@ -1,10 +1,14 @@
-# Tea
+<p align="right"><a href="https://github.com/Rorkh/tea/blob/docs/features-ru.md">RU</a></p>
+<p align="center">
+	<img src="logo_tea.png" height="130">
+</p>
 
-## RU
-Препроцессор Lua, написанный на говнокоде, но активно (пока) разрабатываемый.
-### Цель
-Упростить написание скриптов на языке программирования Lua
-### Плюшки
+---
+
+<p align="center"><i>Features (sorry but idh time to translate)</i></p>
+
+---
+
 #### Развертка цикла for
 ```lua
 #for i = 1, 3 do
@@ -146,7 +150,3 @@ text = text or "Something"
 print(text)
 end
 ```
-### Баги
-Багов много, в issue смотрите (если там нет, то значит я поленился писать о них, но в уме держу)
-## En
-Shitcoded but WIP Lua preprocessor
