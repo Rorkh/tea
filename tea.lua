@@ -1,5 +1,11 @@
 local preprocess = require "thirdparty.preprocess"
 
+local tea = {
+    defines = {},
+    pragmas = {},
+    envs = {}
+}
+
 local var_ops = {
     {
         "%+=",
@@ -38,9 +44,6 @@ local inc_ops = {
         "+"
     }
 }
-
-local defines = {}
-local pragmas = {}
 
 local function find_function(lines, start)
     for i = 1, 10 do  -- Limit for the greater opimization. May be shitty :(
@@ -115,7 +118,7 @@ local line_ops = {
 
         replace = function(k, line, lines, key, values)
             lines[k] = "[ignore]"
-            pragmas[key] = value or true
+            tea.pragmas[key] = value or true
         end
     },
 
@@ -130,7 +133,7 @@ local line_ops = {
 
         replace = function(k, line, lines, def, replace)
             lines[k] = "[ignore]"
-            defines[def] = replace
+            tea.defines[def] = replace
         end
     },
 
@@ -146,9 +149,9 @@ local line_ops = {
         replace = function(k, line, lines, define, alias)
             lines[k] = "[ignore]"
 
-            local def = defines[define]
+            local def = tea.defines[define]
             if def then
-                defines[alias] = def
+                tea.defines[alias] = def
             end
         end
     },
@@ -286,7 +289,7 @@ local function parse_increments(lines)
     end
 end
 
-local function parse(text, envs)
+function tea.parse(text)
     local lines = parse_lines(text)
 
         parse_ops(lines)
@@ -304,11 +307,11 @@ local function parse(text, envs)
 
     text = concat_lines(lines)
 
-    for define, value in pairs(defines) do
+    for define, value in pairs(tea.defines) do
         text = text:gsub(define, value)
     end
 
-    if pragmas["minimize"] then
+    if tea.pragmas["minimize"] then
         local Parser = require'thirdparty.ParseLua'
         local Format_Mini = require'thirdparty.FormatMini'
         local ParseLua = Parser.ParseLua
@@ -318,9 +321,9 @@ local function parse(text, envs)
         text = Format_Mini(ast)
     end
 
-    setmetatable(envs, {__index = _G})
+    setmetatable(tea.envs, {__index = _G})
 
-    return preprocess({input = text, lookup = envs})
+    return preprocess({input = text, lookup = tea.envs})
 end
 
-return parse
+return tea
