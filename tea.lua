@@ -370,6 +370,8 @@ local function parse(text)
         text = Format_Mini(ast)
     end
 
+    setmetatable(globals, {__index = _G})
+
     return preprocess({input = text, lookup = globals})
 end
 
