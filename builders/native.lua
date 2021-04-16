@@ -49,7 +49,7 @@ local function copy_folder(origin, to)
     -- TODO: Linux
 end
 
-local function replace_files(parse, path)
+local function replace_files(envs, parse, path)
     for k, v in ipairs(scandir(path)) do
         local file = path.."/"..v
         local capture = string.match(file, ".+%.(.+)")
@@ -62,7 +62,7 @@ local function replace_files(parse, path)
             os.remove(file)
 
             local f = io.open(file:gsub(".tlua", ".lua"), "w")
-                f:write(parse(content))
+                f:write(parse(content, envs))
                 f:close()
         elseif capture == nil then
             replace_files(file)
@@ -71,7 +71,7 @@ local function replace_files(parse, path)
 end
 
 
-function builder.build(path, cup_dir)
+function builder.build(path, cup_dir, envs)
 	package.path = path
 	local parse = require "tea"
 
@@ -80,7 +80,7 @@ function builder.build(path, cup_dir)
 	end
 
 	copy_folder("src", "build")
-	replace_files(parse, "build")
+	replace_files(envs, parse, "build")
 end
 
 return builder

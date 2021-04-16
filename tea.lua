@@ -39,8 +39,6 @@ local inc_ops = {
     }
 }
 
-local globals = {}
-
 local defines = {}
 local pragmas = {}
 
@@ -288,7 +286,7 @@ local function parse_increments(lines)
     end
 end
 
-local function parse(text)
+local function parse(text, envs)
     local lines = parse_lines(text)
 
         parse_ops(lines)
@@ -320,9 +318,9 @@ local function parse(text)
         text = Format_Mini(ast)
     end
 
-    setmetatable(globals, {__index = _G})
+    setmetatable(envs, {__index = _G})
 
-    return preprocess({input = text, lookup = globals})
+    return preprocess({input = text, lookup = envs})
 end
 
 return parse
