@@ -1,6 +1,6 @@
 <p align="right"><a href="https://github.com/Rorkh/tea/blob/docs/features-ru.md">RU</a></p>
 <p align="center">
-	<img src="logo_tea.png" height="130">
+	<img src="assets/logo_tea.png" height="130">
 </p>
 
 ---
