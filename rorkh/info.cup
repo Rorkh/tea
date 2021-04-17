@@ -1,0 +1,5 @@
+cup = {}
+
+cup.name = "rorkh"
+cup.envs = {}
+cup.builder = "native"
