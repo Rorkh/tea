@@ -1,7 +1,10 @@
-local os_name = package.config:sub(1,1) == "\\" and "Windows" or "Unix"
-
-local execute = os.execute
 local preprocess = require "thirdparty.preprocess"
+
+local tea = {
+    defines = {},
+    pragmas = {},
+    envs = {}
+}
 
 local var_ops = {
     {
@@ -41,11 +44,6 @@ local inc_ops = {
         "+"
     }
 }
-
-local globals = {}
-
-local defines = {}
-local pragmas = {}
 
 local function find_function(lines, start)
     for i = 1, 10 do  -- Limit for the greater opimization. May be shitty :(
@@ -120,7 +118,7 @@ local line_ops = {
 
         replace = function(k, line, lines, key, values)
             lines[k] = "[ignore]"
-            pragmas[key] = value or true
+            tea.pragmas[key] = value or true
         end
     },
 
@@ -135,7 +133,7 @@ local line_ops = {
 
         replace = function(k, line, lines, def, replace)
             lines[k] = "[ignore]"
-            defines[def] = replace
+            tea.defines[def] = replace
         end
     },
 
@@ -151,9 +149,9 @@ local line_ops = {
         replace = function(k, line, lines, define, alias)
             lines[k] = "[ignore]"
 
-            local def = defines[define]
+            local def = tea.defines[define]
             if def then
-                defines[alias] = def
+                tea.defines[alias] = def
             end
         end
     },
@@ -248,53 +246,6 @@ local line_ops = {
     }
 }
 
-function scandir(directory)
-    local i, t, popen = 0, {}, io.popen
-    for filename in popen('dir "'..directory..'" /b'):lines() do
-        i = i + 1
-        t[i] = filename
-    end
-    return t
-end
-
-local function exists(file)
-   local ok, err, code = os.rename(file, file)
-   if not ok then
-      if code == 13 then
-         -- Permission denied, but it exists
-         return true
-      end
-   end
-   return ok, err
-end
-
---- Check if a directory exists in this path
-local function isdir(path)
-   -- "/" works on both Unix and Windows
-   return exists(path.."/")
-end
-
-local function is_dir(path)
-    local f = io.open(path)
-    return not f:read(0) and f:seek("end") ~= 0
-end
-
-local function delete_dir(path)
-    if os_name == "Windows" then
-        execute("rd /s /q " .. path)
-    else
-        execute("rm -rf " .. path)
-    end
-end
-
-local function copy_folder(origin, to)
-    if os_name == "Windows" then
-        execute("xcopy " .. origin .. " " .. to .. " /e /i /h")
-    end
-
-    -- TODO: Linux
-end
-
 local function parse_lines(text)
     local lines = {}
 
@@ -338,7 +289,7 @@ local function parse_increments(lines)
     end
 end
 
-local function parse(text)
+function tea.parse(text)
     local lines = parse_lines(text)
 
         parse_ops(lines)
@@ -356,11 +307,11 @@ local function parse(text)
 
     text = concat_lines(lines)
 
-    for define, value in pairs(defines) do
+    for define, value in pairs(tea.defines) do
         text = text:gsub(define, value)
     end
 
-    if pragmas["minimize"] then
+    if tea.pragmas["minimize"] then
         local Parser = require'thirdparty.ParseLua'
         local Format_Mini = require'thirdparty.FormatMini'
         local ParseLua = Parser.ParseLua
@@ -370,53 +321,9 @@ local function parse(text)
         text = Format_Mini(ast)
     end
 
-    setmetatable(globals, {__index = _G})
+    setmetatable(tea.envs, {__index = _G})
 
-    return preprocess({input = text, lookup = globals})
+    return preprocess({input = text, lookup = tea.envs})
 end
 
-local function replace_files(path)
-    for k, v in ipairs(scandir(path)) do
-        local file = path.."/"..v
-        local capture = string.match(file, ".+%.(.+)")
-
-        if capture == "tlua" then
-            local f = io.open(file)
-            local content = f:read("*a")
-            f:close()
-
-            local f = io.open(file:gmatch(".tlua", ".lua"), "w")
-                f:write(parse(content))
-                f:close()
-        elseif capture == nil then
-            replace_files(file)
-        end
-    end
-end
-
-local start = os.clock()
-
-if arg[1]:match(".+%.tlua") then
-    local f = io.open(arg[1])
-    if not f then print("Could not open the file") return end
-    local content = f:read("*a")
-    f:close()
-
-    local f = io.open(arg[1]:gsub(".tlua", ".lua"), "w")
-        f:write(parse(content))
-        f:close()
-
-    print(string.format("Completed in: %.2f\n", os.clock() - start))
-    return
-end
-
-if isdir("out") then
-    delete_dir("out")
-end
-
-copy_folder(arg[1], "out")
-replace_files("out")
-
-copy_folder("out", arg[2])
-
-print(string.format("Completed in: %.2f\n", os.clock() - start))
+return tea
