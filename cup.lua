@@ -17,6 +17,16 @@ local function error(msg)
 	print("[ERROR] " .. msg)
 end
 
+local function readInfo()
+	local info = file_exists("info.cup")
+	if not info then error("Info file was not founded.") return end
+
+	local content = info:read("*a")
+	info:close()
+
+	return content
+end
+
 local action = arg[1]
 if not action then error("Action not specified.") return end
 
@@ -38,11 +48,7 @@ if action == "new" then
 		info:write([[cup.builder = "native"]], "\n")
 	info:close()
 elseif action == "build" then
-	local info = file_exists("info.cup")
-	if not info then error("Info file was not founded.") return end
-
-	local content = info:read("*a")
-	info:close()
+	local content = readInfo()
 
 	assert(loadstring(content))()
 	if not cup.builder then error("Builder not specified.") return end
@@ -51,6 +57,16 @@ elseif action == "build" then
 	if not status then error("Builder was not founded.") return end
 
 	builder.build(package.path, io.popen"cd":read'*l', cup)
+elseif action == "run" then
+	local content = readInfo()
+	
+	assert(loadstring(content))()
+	if not cup.builder then error("Builder not specified.") return end
+
+	status, builder = pcall(require, "builders." .. cup.builder)
+	if not status then error("Builder was not founded.") return end
+
+	builder.run(package.path, io.popen"cd":read'*l', cup)
 else
 	print("[ERROR] Unknown action.")
 	return

@@ -1,7 +1,13 @@
 local builder = {}
 
-local os_name = package.config:sub(1,1) == "\\" and "Windows" or "Unix"
+local separator = package.config:sub(1,1)
+
+local os_name = separator == "\\" and "Windows" or "Unix"
 local execute = os.execute
+
+local function error(msg)
+  print("[ERROR] " .. msg)
+end
 
 local function scandir(directory)
     local i, t, popen = 0, {}, io.popen
@@ -84,6 +90,24 @@ function builder.build(path, cup_dir, cup)
 
 	copy_folder("src", "build")
 	replace_files(tea, "build")
+end
+
+function builder.run(path, cup_dir, cup)
+  package.path = path
+  local tea = require "tea"
+    tea.envs = cup.envs or {}
+    tea.pragmas = cup.pragmas or {}
+    tea.defines = cup.defines or {}
+
+  if isdir("build") then
+      delete_dir("build")
+  end
+
+  copy_folder("src", "build")
+  replace_files(tea, "build")
+
+  package.path = path .. ";" .. cup_dir .. separator .. "build" .. separator .. "?.lua;"
+  require "main"
 end
 
 return builder
