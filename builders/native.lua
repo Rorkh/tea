@@ -49,7 +49,7 @@ local function copy_folder(origin, to)
     -- TODO: Linux
 end
 
-local function replace_files(envs, tea, path)
+local function replace_files(tea, path)
     for k, v in ipairs(scandir(path)) do
         local file = path.."/"..v
         local capture = string.match(file, ".+%.(.+)")
@@ -83,7 +83,7 @@ function builder.build(path, cup_dir, cup)
 	end
 
 	copy_folder("src", "build")
-	replace_files(envs, tea, "build")
+	replace_files(tea, "build")
 end
 
 return builder
