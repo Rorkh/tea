@@ -296,6 +296,12 @@ function tea.parse(text)
         parse_increments(lines)
 
         for lk, line in ipairs(lines) do
+            tea.defines["__line__"] = lk
+
+            for define, value in pairs(tea.defines) do
+                lines[lk] = lines[lk]:gsub(define, value)
+            end
+
             for k, v in ipairs(line_ops) do
                 local result, arg1, arg2, arg3 = v.match(lk, line, lines)
 
@@ -306,10 +312,6 @@ function tea.parse(text)
         end
 
     text = concat_lines(lines)
-
-    for define, value in pairs(tea.defines) do
-        text = text:gsub(define, value)
-    end
 
     if tea.pragmas["minimize"] then
         local Parser = require'thirdparty.ParseLua'
