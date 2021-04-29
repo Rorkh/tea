@@ -1,3 +1,9 @@
+local table_insert = table.insert
+local next = next
+local ipairs = ipairs
+local pairs = pairs
+local setmetatable = setmetatable
+
 local preprocess = require "thirdparty.preprocess"
 
 local tea = {
@@ -61,7 +67,7 @@ local line_ops = {
             local vars = {}
 
             for var in line:gmatch("%${(.+)}") do
-                table.insert(vars, var)
+                table_insert(vars, var)
             end
 
             if next(vars) ~= nil then return true, vars end
@@ -82,7 +88,7 @@ local line_ops = {
 
             if args then
                 for arg, default in args:gmatch("([0-9a-zA-Z_]+)=([0-9a-zA-Z _\"']+)") do
-                    table.insert(args_tbl, {arg, default})
+                    table_insert(args_tbl, {arg, default})
                 end
 
                 if next(args_tbl) ~= nil then
@@ -100,7 +106,7 @@ local line_ops = {
                 -- Bottleneck?
                 args_str = args_str .. arg[1] .. (n == #args_tbl and "" or ",")
 
-                table.insert(lines, k+1, arg[1] .. " = " .. arg[1] .. " or " .. arg[2])
+                table_insert(lines, k+1, arg[1] .. " = " .. arg[1] .. " or " .. arg[2])
             end
 
             lines[k] = line:gsub("function " .. name .. "%(" .. args .. "%)", "function " .. name .. "(" .. args_str .. ")")
@@ -168,7 +174,7 @@ local line_ops = {
 
         replace = function(k, line, lines, matcher, ret, func_line)
             lines[k] = "[ignore]"
-            table.insert(lines, func_line + 1, "if " .. matcher .. " then return " .. ret .. " end")
+            table_insert(lines, func_line + 1, "if " .. matcher .. " then return " .. ret .. " end")
         end
     },
 
@@ -186,7 +192,7 @@ local line_ops = {
 
         replace = function(k, line, lines, deco, func_line)
             lines[k] = "[ignore]"
-            table.insert(lines, func_line + 1, "if not " .. deco .. " then return end")
+            table_insert(lines, func_line + 1, "if not " .. deco .. " then return end")
         end
     },
 
@@ -204,7 +210,7 @@ local line_ops = {
 
         replace = function(k, line, lines, deco, func_line)
             lines[k] = "[ignore]"
-            table.insert(lines, func_line + 1, "if " .. deco .. " then return end")
+            table_insert(lines, func_line + 1, "if " .. deco .. " then return end")
         end
     },
 
@@ -213,7 +219,7 @@ local line_ops = {
             local casts = {}
 
             for _type, junk, var in line:gmatch("[a-zA-Z0-9.\"'_(){} ]%(([a-zA-Z]+)%)([ ]*)([0-9a-zA-Z_.'\"]+)") do
-                table.insert(casts, {_type, junk, var})
+                table_insert(casts, {_type, junk, var})
             end
 
             if next(casts) ~= nil then
@@ -249,7 +255,7 @@ local line_ops = {
 local function parse_lines(text)
     local lines = {}
 
-    for v in text:gmatch("([^\n]*)\n?") do table.insert(lines, v) end
+    for v in text:gmatch("([^\n]*)\n?") do table_insert(lines, v) end
     return lines
 end
 
