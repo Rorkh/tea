@@ -77,12 +77,12 @@ local function replace_files(tea, path)
 end
 
 
-function builder.build(path, cup_dir, cup)
+function builder.build(path, cup)
 	package.path = path
 	local tea = require "tea"
-    tea.envs = cup.envs or {}
-    tea.pragmas = cup.pragmas or {}
-    tea.defines = cup.defines or {}
+        setmetatable(tea.envs, {__index = cup.envs or {}})
+        setmetatable(tea.pragmas, {__index = cup.pragmas or {}})
+        setmetatable(tea.defines, {__index = cup.defines or {}})
 
 	if isdir("build") then
 	    delete_dir("build")
@@ -90,24 +90,30 @@ function builder.build(path, cup_dir, cup)
 
 	copy_folder("src", "build")
 	replace_files(tea, "build")
+
+  return true
 end
 
-function builder.run(path, cup_dir, cup)
+function builder.run(path, cup, cup_dir, modules_path)
+  builder.build(path, cup)
+
+  package.path = path .. ";" .. cup_dir .. separator .. "build" .. separator .. "?.lua;"
+  require "main"
+
+  return true
+end
+
+function builder.install(path, folder)
   package.path = path
   local tea = require "tea"
     tea.envs = cup.envs or {}
     tea.pragmas = cup.pragmas or {}
     tea.defines = cup.defines or {}
 
-  if isdir("build") then
-      delete_dir("build")
-  end
+  copy_folder("src", folder)
+  replace_files(tea, folder)
 
-  copy_folder("src", "build")
-  replace_files(tea, "build")
-
-  package.path = path .. ";" .. cup_dir .. separator .. "build" .. separator .. "?.lua;"
-  require "main"
+  return true
 end
 
 return builder
