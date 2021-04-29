@@ -86,6 +86,10 @@ local line_ops = {
             local name, args = line:match("function ([0-9a-zA-Z, _:.]+)%(([0-9a-zA-Z, _\"=']*)%)")
             local args_tbl = {}
 
+            if name then
+                tea.defines["__function__"] = name
+            end
+
             if args then
                 for arg, default in args:gmatch("([0-9a-zA-Z_]+)=([0-9a-zA-Z _\"']+)") do
                     table_insert(args_tbl, {arg, default})
