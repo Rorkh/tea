@@ -299,7 +299,11 @@ local function parse_increments(lines)
     end
 end
 
-function tea.parse(text)
+function tea.parse(text, file)
+    tea.defines["__file__"] = file or "unknown"
+    tea.defines["__date__"] = os.date("%b %d %Y", os.time())
+    tea.defines["__time__"] = os.date("%X", os.time())
+
     local lines = parse_lines(text)
 
         parse_ops(lines)

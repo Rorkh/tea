@@ -67,8 +67,9 @@ local function replace_files(tea, path)
 
             os.remove(file)
 
-            local f = io.open(file:gsub(".tlua", ".lua"), "w")
-                f:write(tea.parse(content))
+            local filename = file:gsub(".tlua", ".lua")
+            local f = io.open(filename, "w")
+                f:write(tea.parse(content, filename))
                 f:close()
         elseif capture == nil then
             replace_files(file)

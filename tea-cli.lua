@@ -15,6 +15,7 @@ if not f then print("Could not open the file") return end
 local content = f:read("*a")
 f:close()
 
-local f = io.open(filename:gsub(".tlua", ".lua"), "w")
-f:write(tea.parse(content))
+local fname = filename:gsub(".tlua", ".lua")
+local f = io.open(fname, "w")
+f:write(tea.parse(content, fname))
 f:close()
